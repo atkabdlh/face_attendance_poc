@@ -1,4 +1,4 @@
-package com.example.mykoku_attendance
+package com.mykoku.attendance
 
 import io.flutter.embedding.android.FlutterActivity
 

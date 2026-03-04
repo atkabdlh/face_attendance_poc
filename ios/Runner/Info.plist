@@ -45,5 +45,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is required to scan faces for attendance.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access may be required during camera usage.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartobservatory._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow the app to discover and connect to local devices for debugging.</string>
 </dict>
 </plist>
