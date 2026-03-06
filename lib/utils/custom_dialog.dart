@@ -1,6 +1,8 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:mykoku_attendance/utils/debouncer.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mykoku_attendance/widgets/name_modal_widget.dart';
 
 enum DialogSize { small, medium, large, custom }
 
@@ -129,5 +131,28 @@ class CustomDialog {
         );
       },
     );
+  }
+
+  Future<String?> nameModalDialog(BuildContext context, XFile? file) async {
+    String? name = await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(24),
+          topLeft: Radius.circular(24),
+        ),
+      ),
+      builder: (BuildContext context) {
+        return FractionallySizedBox(
+          heightFactor: 0.6,
+          child: NameModalWidget(image: file),
+        );
+      },
+    );
+
+    return name;
   }
 }

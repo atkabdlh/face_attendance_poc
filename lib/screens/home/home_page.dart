@@ -21,7 +21,8 @@ class _HomePageState extends State<HomePage> {
       'Accept': 'application/json',
     };
     final response = await Client().get(
-      Uri.parse('https://face-attendance-api-fkz4.onrender.com/health'),
+      // Uri.parse('https://face-attendance-api-fkz4.onrender.com/health'),
+      Uri.parse('http://159.89.197.111:5000/health'),
       headers: headers,
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
