@@ -13,12 +13,118 @@ class DeepminRepository {
 
   DeepminRepository._internal();
 
-  Future<DeepminResultModel> healthCheck(String email, String password,
-      {bool rememberUser = false}) async {
-    String healthCheckUrl = 'user/health';
+  static Future<DeepminRepository> initialize(AppClient client) async {
+    _instance.client = client;
+
+    return _instance;
+  }
+
+  Future<DeepminResultModel> healthCheck() async {
+    String healthCheckUrl = 'health';
 
     try {
-      Response response = await client.get(healthCheckUrl, requiresAuth: false);
+      Response response =
+          await client.get(healthCheckUrl, ApiType.flask, requiresAuth: false);
+
+      var decodedBody = utf8.decode(response.bodyBytes);
+      var result = json.decode(decodedBody);
+      var statusCode = result['code'] ?? response.statusCode;
+
+      if (statusCode == 200) {
+        return DeepminResultModel(
+          message: result['message'] ?? 'Successfully fetch server status.',
+          status: DeepminResultStatus.success,
+        );
+      } else {
+        return DeepminResultModel(
+            message: result['message'] ??
+                'Failed to get server status, please try again later.',
+            status: DeepminResultStatus.error);
+      }
+    } catch (e) {
+      print('deepminrepo healthCheck error: $e');
+      return DeepminResultModel(
+        message: e.toString(),
+        status: DeepminResultStatus.error,
+      );
+    }
+  }
+
+  Future<DeepminResultModel> listJobs() async {
+    String pendingJobsUrl = 'list-jobs';
+
+    try {
+      Response response =
+          await client.get(pendingJobsUrl, ApiType.flask, requiresAuth: false);
+
+      var decodedBody = utf8.decode(response.bodyBytes);
+      var result = json.decode(decodedBody);
+      var statusCode = result['code'] ?? response.statusCode;
+
+      if (statusCode == 200) {
+        return DeepminResultModel(
+          message: result['message'] ?? 'Successfully fetch pending jobs.',
+          status: DeepminResultStatus.success,
+        );
+      } else {
+        return DeepminResultModel(
+            message: result['message'] ??
+                'Failed to get pending jobs, please try again later.',
+            status: DeepminResultStatus.error);
+      }
+    } catch (e) {
+      print('deepminrepo listJobs error: $e');
+      return DeepminResultModel(
+        message: e.toString(),
+        status: DeepminResultStatus.error,
+      );
+    }
+  }
+
+  Future<DeepminResultModel> getJobResult(String jobId) async {
+    String jobResultUrl = 'job-result/$jobId';
+
+    try {
+      Response response =
+          await client.get(jobResultUrl, ApiType.flask, requiresAuth: false);
+
+      var decodedBody = utf8.decode(response.bodyBytes);
+      var result = json.decode(decodedBody);
+      var statusCode = result['code'] ?? response.statusCode;
+
+      if (statusCode == 200) {
+        return DeepminResultModel(
+          message: result['message'] ?? 'Successfully fetch job result.',
+          matchName: result['matches']['name'],
+          status: DeepminResultStatus.success,
+        );
+      } else {
+        return DeepminResultModel(
+            message: result['message'] ??
+                'Failed to get pending jobs, please try again later.',
+            status: DeepminResultStatus.error);
+      }
+    } catch (e) {
+      print('deepminrepo getJobResult error: $e');
+      return DeepminResultModel(
+        message: e.toString(),
+        status: DeepminResultStatus.error,
+      );
+    }
+  }
+
+  Future<DeepminResultModel> registerFace(
+      String name, String imageBase64) async {
+    String registerFaceUrl = 'register-student';
+
+    Map<String, dynamic> body = {
+      'name': name,
+      'image': imageBase64,
+    };
+
+    try {
+      Response response = await client
+          .post(registerFaceUrl, body, ApiType.flask, requiresAuth: false);
 
       var decodedBody = utf8.decode(response.bodyBytes);
       var result = json.decode(decodedBody);
@@ -31,12 +137,50 @@ class DeepminRepository {
         );
       } else {
         return DeepminResultModel(
-            message:
-                result['status'] ?? 'Failed to login, please try again later.',
+            message: result['message'] ??
+                'Failed to register face, please try again later.',
             status: DeepminResultStatus.error);
       }
     } catch (e) {
-      print('deepminrepo healthCheck error: $e');
+      print('deepminrepo registerFace error: $e');
+      return DeepminResultModel(
+        message: e.toString(),
+        status: DeepminResultStatus.error,
+      );
+    }
+  }
+
+  Future<DeepminResultModel> recognizeFace(String imageBase64) async {
+    String recognizeFaceUrl = 'get-all-students';
+
+    Map<String, dynamic> body = {
+      'image': imageBase64,
+    };
+
+    try {
+      Response response = await client
+          .post(recognizeFaceUrl, body, ApiType.flask, requiresAuth: false);
+
+      print('deepminrepo recognizeFace response: $response');
+
+      var decodedBody = utf8.decode(response.bodyBytes);
+      var result = json.decode(decodedBody);
+      var statusCode = result['code'] ?? response.statusCode;
+
+      if (statusCode == 200) {
+        return DeepminResultModel(
+          message: result['message'] ?? 'Successfully recognize face.',
+          jobId: result['job_id'],
+          status: DeepminResultStatus.success,
+        );
+      } else {
+        return DeepminResultModel(
+            message: result['message'] ??
+                'Failed to recognize face, please try again later.',
+            status: DeepminResultStatus.error);
+      }
+    } catch (e) {
+      print('deepminrepo recognizeFace error: $e');
       return DeepminResultModel(
         message: e.toString(),
         status: DeepminResultStatus.error,

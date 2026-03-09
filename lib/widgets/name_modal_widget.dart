@@ -23,38 +23,53 @@ class _NameModalWidgetState extends State<NameModalWidget> {
       appBar: AppBar(
         title: Text('Create Face Embedding'),
       ),
-      body: Column(
-        children: [
-          if (widget.image != null)
-            Image.file(
-              File(widget.image!.path),
-              height: 200,
-            ),
-          Text('Name:'),
-          TextField(
-            onChanged: (value) {
-              setState(() {
-                name = value;
-              });
-            },
-            decoration: InputDecoration(
-              hintText: 'Enter your name',
-            ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              if (widget.image != null)
+                Image.file(
+                  File(widget.image!.path),
+                  height: 200,
+                ),
+              SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Name:'),
+              ),
+              TextField(
+                onChanged: (value) {
+                  setState(() {
+                    name = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Enter your name',
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    customDialog.snackbarMessage(
+                      context,
+                      'Face embedding created for $name',
+                    );
+                    Navigator.pop(context, name);
+                  },
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: Center(child: Text('Create')),
+                  ),
+                ),
+              )
+            ],
           ),
-        ],
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: ElevatedButton(
-          onPressed: () async {
-            customDialog.snackbarMessage(
-              context,
-              'Face embedding created for $name',
-            );
-            Navigator.pop(context, name);
-          },
-          child: Text('Create'),
         ),
       ),
+      resizeToAvoidBottomInset: true,
     );
   }
 }

@@ -1,73 +1,90 @@
 import 'dart:convert';
-
 import 'package:http/http.dart';
 import 'package:mykoku_attendance/services/app_storage.dart';
 
+enum ApiType { flask, mykoku }
+
 class AppClient {
   final Client _client;
-  final String apiUrl;
+  final String mykokuApiUrl;
+  final String flaskApiUrl;
 
-  AppClient(this.apiUrl, {Client? client}) : _client = client ?? Client();
+  AppClient({String? mykokuApiUrl, String? flaskApiUrl, Client? client})
+      : _client = client ?? Client(),
+        mykokuApiUrl = mykokuApiUrl ?? '',
+        flaskApiUrl = flaskApiUrl ?? '';
 
-  Future<Response> get(String endpoint,
+  Future<Response> get(String endpoint, ApiType apiType,
       {bool requiresAuth = true, bool? getPdf}) async {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.get(
-      Uri.parse('$apiUrl/$endpoint'),
+      Uri.parse(
+          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
     );
-    return _handleResponse(response);
+    return _handleResponse(response, apiType);
   }
 
-  Future<Response> post(String endpoint, Map<String, dynamic> body,
+  Future<Response> post(
+      String endpoint, Map<String, dynamic> body, ApiType apiType,
       {bool requiresAuth = true, bool requiresCsrf = false}) async {
     final headers =
         await _buildHeaders(requiresAuth, requiresCsrf: requiresCsrf);
     final response = await _client.post(
-      Uri.parse('$apiUrl/$endpoint'),
+      Uri.parse(
+          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
       body: jsonEncode(body),
     );
-    return _handleResponse(response);
+    print('deepminrepo post response: $response');
+    return _handleResponse(response, apiType);
   }
 
   Future<Response> postMultipart(
     String endpoint,
     Map<String, String> fields,
-    List<MultipartFile> files, {
+    List<MultipartFile> files,
+    ApiType apiType, {
     bool requiresAuth = true,
   }) async {
     final headers = await _buildHeaders(requiresAuth);
     headers['Content-Type'] = 'multipart/form-data';
 
-    final request = MultipartRequest('POST', Uri.parse('$apiUrl/$endpoint'))
+    final request = MultipartRequest(
+        'POST',
+        Uri.parse(
+            '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'))
       ..headers.addAll(headers)
       ..fields.addAll(fields)
       ..files.addAll(files);
 
     final streamed = await request.send();
     final response = await Response.fromStream(streamed);
-    return _handleResponse(response);
+    return _handleResponse(response, apiType);
   }
 
-  Future<Response> put(String endpoint, Map<String, dynamic> body,
+  Future<Response> put(
+      String endpoint, Map<String, dynamic> body, ApiType apiType,
       {bool requiresAuth = true}) async {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.put(
-      Uri.parse('$apiUrl/$endpoint'),
+      Uri.parse(
+          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
       body: jsonEncode(body),
     );
-    return _handleResponse(response);
+    return _handleResponse(response, apiType);
   }
 
-  Future<Response> delete(String endpoint, {bool requiresAuth = true}) async {
+  Future<Response> delete(String endpoint, ApiType apiType,
+      {bool requiresAuth = true}) async {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.delete(
-      Uri.parse('$apiUrl/$endpoint'),
+      Uri.parse(
+          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
     );
-    return _handleResponse(response);
+    return _handleResponse(response, apiType);
   }
 
   Future<Map<String, String>> _buildHeaders(bool requiresAuth,
@@ -94,7 +111,7 @@ class AppClient {
     return headers;
   }
 
-  Response _handleResponse(Response response) {
+  Response _handleResponse(Response response, ApiType apiType) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
     } else {
@@ -104,7 +121,7 @@ class AppClient {
       throw Exception(responseBody['errors'] != null
           ? responseBody['errors']['message'][0]
           : responseBody['message'] ??
-              'API Error: ${response.statusCode} - ${response.body}');
+              '${apiType == ApiType.mykoku ? 'Mykoku' : 'Flask'} API Error: ${response.statusCode} - ${response.body}');
     }
   }
 }

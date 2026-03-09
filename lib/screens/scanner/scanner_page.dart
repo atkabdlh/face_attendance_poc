@@ -1,28 +1,62 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:http/http.dart';
+import 'package:mykoku_attendance/models/deepmin_result_model.dart';
+import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
+import 'package:mykoku_attendance/utils/conversions.dart';
 import 'package:mykoku_attendance/utils/custom_dialog.dart';
 import 'package:mykoku_attendance/widgets/face_boundbox.dart';
 
-class ScannerInitial extends StatefulWidget {
-  const ScannerInitial({super.key});
+enum ScannerMode {
+  enrollment,
+  recognition,
+}
+// ENROLLMENT FLOW
+// Start Camera Stream
+// Detect face
+// Stop stream
+// TakePicture
+// Convert image → base64
+// Show dialog → enter name
+// Generate embedding
+// Save embedding + student
+// Show success
+// Wait 5s
+// Restart stream
+
+// RECOGNITION FLOW
+// Start Camera Stream
+// Detect face
+// Capture frame
+// Convert → base64
+// Generate attendance embedding
+// Find closest match
+// Show student name
+// Mark attendance
+// Show success
+// Cooldown (3–5s)
+// Continue scanning
+
+class ScannerPage extends StatefulWidget {
+  const ScannerPage({super.key, required this.mode});
+
+  final ScannerMode mode;
 
   @override
-  State<ScannerInitial> createState() => _ScannerInitialState();
+  State<ScannerPage> createState() => _ScannerPageState();
 }
 
-class _ScannerInitialState extends State<ScannerInitial> {
+class _ScannerPageState extends State<ScannerPage> {
   CustomDialog customDialog = CustomDialog();
   late List<CameraDescription> _cameras;
   late CameraDescription _currentCamera;
   CameraController? _controller;
   bool _isDetecting = false;
+
+  DeepminRepository deepminRepository = DeepminRepository();
 
   FaceDetector faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -39,7 +73,6 @@ class _ScannerInitialState extends State<ScannerInitial> {
   void initState() {
     super.initState();
     _initializeCamera();
-    printJobs();
   }
 
   Future<void> _initializeCamera() async {
@@ -57,39 +90,32 @@ class _ScannerInitialState extends State<ScannerInitial> {
 
     await _controller!.initialize();
 
-    await _controller!.startImageStream(_processCameraImage);
+    if (widget.mode == ScannerMode.enrollment) {
+      await _controller!.startImageStream(_enrollmentProcess);
+    } else if (widget.mode == ScannerMode.recognition) {
+      await _controller!.startImageStream(_recognitionProcess);
+    }
 
     if (!mounted) return;
     setState(() {});
   }
 
-  Future<void> _processCameraImage(CameraImage image) async {
-    // Enrollment Flow
-    // → Detect face
-    // → Stop stream
-    // → TakePicture
-    // → Convert to base64
-    // → Show dialog (enter name)
-    // → API create embedding
-    // → Success
-    // → Wait 5s
-    // → Restart stream
-
+  Future<void> _enrollmentProcess(CameraImage image) async {
     if (_isDetecting) return;
     _isDetecting = true;
 
     try {
-      final rotation = _getImageRotation();
-
       final inputImage = InputImage.fromBytes(
-        bytes: _concatenatePlanes(image.planes),
+        bytes: concatenatePlanes(image.planes),
         metadata: InputImageMetadata(
           size: Size(
             image.width.toDouble(),
             image.height.toDouble(),
           ),
-          rotation: rotation,
-          format: _getImageFormat(image),
+          rotation: _getImageRotation(),
+          format: Platform.isAndroid
+              ? InputImageFormat.nv21
+              : InputImageFormat.bgra8888,
           bytesPerRow: image.planes.first.bytesPerRow,
         ),
       );
@@ -98,8 +124,6 @@ class _ScannerInitialState extends State<ScannerInitial> {
       print("${faces.length} Faces detected: $faces");
 
       if (faces.length == 1) {
-        print("Face detected! ${faces.length}");
-
         await _controller?.stopImageStream();
 
         setState(() {
@@ -127,33 +151,16 @@ class _ScannerInitialState extends State<ScannerInitial> {
             if (mounted) {
               final name = await customDialog.nameModalDialog(context, file);
               if (name != null) {
-                print("Name entered: $name");
+                final base64Image = base64Encode(bytes);
 
-                final base64Image = base64Encode(bytes!);
+                DeepminResultModel result =
+                    await deepminRepository.registerFace(name, base64Image);
 
-                print("Base64 Image: $base64Image");
-
-                final embedding = await createSingleEmbedding(
-                  name,
-                  base64Image,
-                );
+                final embedding = result.data?['embedding'];
 
                 print("Embedding: $embedding");
 
-                if (embedding != null) {
-                  // if (embedding['status']
-                  //         .toString()
-                  //         .toLowerCase()
-                  //         .contains('success') ||
-                  //     embedding['status'].toString().contains('ok')) {
-                  //   setState(() {
-                  //     streamCaption = 'Embedding created! Next student?';
-                  //   });
-                  // } else {
-                  //   setState(() {
-                  //     streamCaption = 'Failed to create embedding!';
-                  //   });
-                  // }
+                if (result.status == DeepminResultStatus.success) {
                   setState(() {
                     streamCaption = 'Embedding created! Next student?';
                   });
@@ -173,7 +180,104 @@ class _ScannerInitialState extends State<ScannerInitial> {
 
         await Future.delayed(const Duration(seconds: 3));
 
-        await _controller?.startImageStream(_processCameraImage);
+        await _controller?.startImageStream(_enrollmentProcess);
+      } else if (faces.length > 1) {
+        setState(() {
+          streamCaption = 'Multiple faces detected! Please wait for your turn.';
+        });
+      } else {
+        setState(() {
+          streamCaption = 'No face detected! Please try again.';
+        });
+      }
+    } catch (e) {
+      print("Face detection error: $e");
+    } finally {
+      _isDetecting = false;
+    }
+  }
+
+  Future<void> _recognitionProcess(CameraImage image) async {
+    if (_isDetecting) return;
+    _isDetecting = true;
+
+    try {
+      final inputImage = InputImage.fromBytes(
+        bytes: concatenatePlanes(image.planes),
+        metadata: InputImageMetadata(
+          size: Size(
+            image.width.toDouble(),
+            image.height.toDouble(),
+          ),
+          rotation: _getImageRotation(),
+          format: Platform.isAndroid
+              ? InputImageFormat.nv21
+              : InputImageFormat.bgra8888,
+          bytesPerRow: image.planes.first.bytesPerRow,
+        ),
+      );
+
+      final faces = await faceDetector.processImage(inputImage);
+      print("${faces.length} Faces detected: $faces");
+
+      if (faces.length == 1) {
+        await _controller?.stopImageStream();
+
+        setState(() {
+          streamCaption = 'Hold still and look at the camera';
+        });
+
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        final XFile? file = await _controller?.takePicture();
+        final Uint8List? bytes = await file?.readAsBytes();
+
+        if (bytes == null) {
+          setState(() {
+            streamCaption = 'Failed to read picture bytes, trying again...';
+          });
+        } else {
+          if (file != null) {
+            setState(() {
+              streamCaption = 'Finding matches...';
+            });
+            final base64Image = base64Encode(bytes);
+
+            DeepminResultModel result =
+                await deepminRepository.recognizeFace(base64Image);
+            print('deepminrepo recognizeFace result: $result');
+            final jobId = result.jobId;
+
+            if (jobId != null) {
+              setState(() {
+                streamCaption = 'Loading match result...';
+              });
+
+              await Future.delayed(const Duration(seconds: 2));
+
+              final jobResult = await deepminRepository.getJobResult(jobId);
+
+              final matchName = jobResult.matchName;
+
+              print("matchName: $matchName");
+
+              if (jobResult.status == DeepminResultStatus.success) {
+                setState(() {
+                  streamCaption = 'Match found! Upload and Next Student?';
+                  recognizedStudent = matchName;
+                });
+              } else {
+                setState(() {
+                  streamCaption = 'Failed to recognize face!';
+                });
+              }
+            }
+          } else {
+            setState(() {
+              streamCaption = 'Failed to find match! Try again.';
+            });
+          }
+        }
       } else if (faces.length > 1) {
         setState(() {
           streamCaption = 'Multiple faces detected! Please wait for your turn.';
@@ -207,23 +311,6 @@ class _ScannerInitialState extends State<ScannerInitial> {
     }
   }
 
-  InputImageFormat _getImageFormat(CameraImage image) {
-    // YUV to nv21 in Android and to bgra8888 in IOS
-    if (Platform.isAndroid) {
-      return InputImageFormat.nv21;
-    } else {
-      return InputImageFormat.bgra8888;
-    }
-  }
-
-  Uint8List _concatenatePlanes(List<Plane> planes) {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (Plane plane in planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    return allBytes.done().buffer.asUint8List();
-  }
-
   Future<void> switchCamera() async {
     await _controller?.dispose();
     _currentCamera =
@@ -235,80 +322,13 @@ class _ScannerInitialState extends State<ScannerInitial> {
       imageFormatGroup: ImageFormatGroup.yuv420,
     );
     await _controller!.initialize();
-    await _controller!.startImageStream(_processCameraImage);
+
+    if (widget.mode == ScannerMode.enrollment) {
+      await _controller!.startImageStream(_enrollmentProcess);
+    } else if (widget.mode == ScannerMode.recognition) {
+      await _controller!.startImageStream(_recognitionProcess);
+    }
     setState(() {});
-  }
-
-  Future<Response> post(String endpoint, Map<String, dynamic>? body) async {
-    print('post endpoint: $endpoint');
-    print('post body: $body');
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    final response = await Client()
-        .post(
-      // Uri.parse('https://face-attendance-api-fkz4.onrender.com/$endpoint'),
-      Uri.parse('http://159.89.197.111:5000/$endpoint'),
-      headers: headers,
-      body: body != null ? json.encode(body) : null,
-    )
-        .timeout(Duration(seconds: 30), onTimeout: () {
-      throw Exception('Request timed out after 30 seconds');
-    });
-    print('post response: $response');
-    if (response.statusCode == 200) {
-      return response;
-    } else {
-      Map<String, dynamic> responseBody = json.decode(response.body);
-      print('error response body: ${response.body}');
-      // throw Exception('API Error: ${response.statusCode} - ${response.body}');
-      throw Exception(responseBody['errors'] != null
-          ? responseBody['errors']['message'][0]
-          : responseBody['message'] ??
-              'API Error: ${response.statusCode} - ${response.body}');
-    }
-  }
-
-  Future<void> printJobs() async {
-    final response = await Client().get(
-      // Uri.parse('https://face-attendance-api-fkz4.onrender.com/list-jobs'),
-      Uri.parse('http://159.89.197.111:5000/list-jobs'),
-      headers: {'Accept': 'application/json'},
-    );
-
-    if (response.statusCode == 200) {
-      final jobs = jsonDecode(response.body) as List<dynamic>;
-      for (var job in jobs) {
-        String jobId = job['job_id'];
-        String status = job['status'];
-        print("Job $jobId - ${job['name']}: ${job['status']}");
-      }
-    } else {
-      print("Failed to fetch jobs: ${response.statusCode}");
-    }
-  }
-
-  Future<Map<String, dynamic>?> createSingleEmbedding(
-    String name,
-    String imageBase64,
-  ) async {
-    String createSingleEmbeddingUrl = 'register-student';
-
-    Response response = await post(createSingleEmbeddingUrl, {
-      "name": name,
-      "image": imageBase64,
-    });
-
-    print('createSingleEmbedding response: $response');
-    var decodedBody = utf8.decode(response.bodyBytes);
-    var result = json.decode(decodedBody);
-    var statusCode = response.statusCode;
-
-    print('createSingleEmbedding statusCode: $statusCode');
-    print('createSingleEmbedding result: $result');
-
-    return result;
   }
 
   @override
@@ -328,12 +348,7 @@ class _ScannerInitialState extends State<ScannerInitial> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        leading: BackButton(
-            color: Colors.white,
-            onPressed: () {
-              printJobs();
-              Navigator.pop(context);
-            }),
+        leading: BackButton(color: Colors.white),
         title: const Text(
           'Attendance Scanner',
           style: TextStyle(color: Colors.white),
@@ -381,20 +396,21 @@ class _ScannerInitialState extends State<ScannerInitial> {
                       Text(
                         streamCaption ?? '',
                         style:
-                            const TextStyle(color: Colors.white, fontSize: 18),
+                            const TextStyle(color: Colors.white, fontSize: 16),
                       ),
-                      Text(
-                        recognizedStudent ?? '',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          // TODO: save student face
-                          print("Save student face");
-                        },
-                        child: const Text("Upload Face"),
-                      ),
+                      if (widget.mode == ScannerMode.recognition) ...[
+                        Text(
+                          recognizedStudent ?? '',
+                          style: const TextStyle(
+                              color: Colors.greenAccent, fontSize: 24),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _controller?.startImageStream(_recognitionProcess);
+                          },
+                          child: const Text("Upload Attendance"),
+                        ),
+                      ],
                       IconButton(
                         icon: Icon(
                             _isStreamPaused ? Icons.play_arrow : Icons.pause,

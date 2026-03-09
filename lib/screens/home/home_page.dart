@@ -1,8 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
-import 'package:mykoku_attendance/screens/scanner/scanner_initial.dart';
+import 'package:mykoku_attendance/models/deepmin_result_model.dart';
+import 'package:mykoku_attendance/screens/scanner/scanner_page.dart';
+import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
 // import 'package:mykoku_attendance/screens/scanner/scanner_initial.dart';
 
 class HomePage extends StatefulWidget {
@@ -13,49 +12,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Future<Response> get(
-    String endpoint,
-  ) async {
-    Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    final response = await Client().get(
-      // Uri.parse('https://face-attendance-api-fkz4.onrender.com/health'),
-      Uri.parse('http://159.89.197.111:5000/health'),
-      headers: headers,
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return response;
-    } else {
-      Map<String, dynamic> responseBody = json.decode(response.body);
-      print('error response body: ${response.body}');
-      // throw Exception('API Error: ${response.statusCode} - ${response.body}');
-      throw Exception(responseBody['errors'] != null
-          ? responseBody['errors']['message'][0]
-          : responseBody['message'] ??
-              'API Error: ${response.statusCode} - ${response.body}');
-    }
-  }
+  DeepminRepository deepminRepository = DeepminRepository();
 
-  Future<Map<String, dynamic>?> healthCheck() async {
-    String healthCheckUrl = 'health';
-
-    try {
-      Response response = await get(healthCheckUrl);
-
-      var decodedBody = utf8.decode(response.bodyBytes);
-      var result = json.decode(decodedBody);
-      var statusCode = response.statusCode;
-
-      print('healthCheck statusCode: $statusCode');
-      print('healthCheck result: $result');
-      return result;
-    } catch (e) {
-      print('deepminrepo healthCheck error: $e');
-      print('deepminrepo healthCheck error: ${e.toString()}');
-      throw e;
-    }
+  Future<String> healthCheck() async {
+    DeepminResultModel result = await deepminRepository.healthCheck();
+    return result.message ??
+        'Failed to get server status, please try again later.';
   }
 
   @override
@@ -74,30 +36,37 @@ class _HomePageState extends State<HomePage> {
                       snapshot.hasData) {
                     print('healthCheck snapshot: ${snapshot}');
                     return Text(
-                        'minimal deepface API status: ${snapshot.data?['status']}');
+                        'minimal deepface API status: ${snapshot.data}');
                   } else {
                     return const CircularProgressIndicator();
                   }
                 }),
             ListTile(
               leading: const Icon(Icons.face),
-              title: Text('Initial Scan'),
+              title: Text('Face Enrollment'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                print('Initial Scan');
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ScannerInitial(),
+                      builder: (context) => ScannerPage(
+                        mode: ScannerMode.enrollment,
+                      ),
                     ));
               },
             ),
             ListTile(
               leading: const Icon(Icons.login),
-              title: Text('Check In Attendance'),
+              title: Text('Face Recognition'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
-                print('Check In Attendance');
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ScannerPage(
+                        mode: ScannerMode.recognition,
+                      ),
+                    ));
               },
             ),
           ],
