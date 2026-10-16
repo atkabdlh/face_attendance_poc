@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart';
-import 'package:mykoku_attendance/services/app_storage.dart';
+import 'package:face_attendance_poc/services/app_storage.dart';
 
 enum ApiType { flask, attn }
 

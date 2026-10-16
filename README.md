@@ -1,4 +1,4 @@
-# Mykoku Attendance
+# Face Attendance Demo
 
 A **proof-of-concept** Flutter app for face-recognition–based attendance. Coaches
 enroll students by capturing their face, then mark attendance by scanning faces

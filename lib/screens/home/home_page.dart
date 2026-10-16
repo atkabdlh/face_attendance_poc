@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mykoku_attendance/models/deepmin_result_model.dart';
-import 'package:mykoku_attendance/screens/scanner/scanner_page.dart';
-import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
+import 'package:face_attendance_poc/models/deepmin_result_model.dart';
+import 'package:face_attendance_poc/screens/scanner/scanner_page.dart';
+import 'package:face_attendance_poc/services/repositories/deepmin_repositories.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

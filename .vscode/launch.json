@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "mykoku_attendance",
+            "name": "face_attendance_poc",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "mykoku_attendance (profile mode)",
+            "name": "face_attendance_poc (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "mykoku_attendance (release mode)",
+            "name": "face_attendance_poc (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

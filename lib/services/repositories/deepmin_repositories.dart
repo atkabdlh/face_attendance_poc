@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart';
-import 'package:mykoku_attendance/models/deepmin_result_model.dart';
-import 'package:mykoku_attendance/services/app_client.dart';
+import 'package:face_attendance_poc/models/deepmin_result_model.dart';
+import 'package:face_attendance_poc/services/app_client.dart';
 
 class DeepminRepository {
   static final DeepminRepository _instance = DeepminRepository._internal();

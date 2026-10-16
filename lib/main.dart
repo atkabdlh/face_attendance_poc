@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:mykoku_attendance/screens/authentication/landing_page.dart';
-import 'package:mykoku_attendance/screens/home/home_page.dart';
-import 'package:mykoku_attendance/screens/settings/settings_page.dart';
-import 'package:mykoku_attendance/services/app_client.dart';
-import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
+import 'package:face_attendance_poc/screens/authentication/landing_page.dart';
+import 'package:face_attendance_poc/screens/home/home_page.dart';
+import 'package:face_attendance_poc/screens/settings/settings_page.dart';
+import 'package:face_attendance_poc/services/app_client.dart';
+import 'package:face_attendance_poc/services/repositories/deepmin_repositories.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

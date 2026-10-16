@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:mykoku_attendance/utils/custom_dialog.dart';
+import 'package:face_attendance_poc/utils/custom_dialog.dart';
 
 class NameModalWidget extends StatefulWidget {
   const NameModalWidget({super.key, this.image});

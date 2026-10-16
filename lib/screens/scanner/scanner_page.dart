@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:mykoku_attendance/models/deepmin_result_model.dart';
-import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
-import 'package:mykoku_attendance/utils/conversions.dart';
-import 'package:mykoku_attendance/utils/custom_dialog.dart';
-import 'package:mykoku_attendance/widgets/face_boundbox.dart';
+import 'package:face_attendance_poc/models/deepmin_result_model.dart';
+import 'package:face_attendance_poc/services/repositories/deepmin_repositories.dart';
+import 'package:face_attendance_poc/utils/conversions.dart';
+import 'package:face_attendance_poc/utils/custom_dialog.dart';
+import 'package:face_attendance_poc/widgets/face_boundbox.dart';
 
 enum ScannerMode {
   enrollment,

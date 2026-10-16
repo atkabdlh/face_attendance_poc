@@ -1,6 +1,6 @@
 {
-    "name": "mykoku_attendance",
-    "short_name": "mykoku_attendance",
+    "name": "Face Attendance Demo",
+    "short_name": "Face Attendance Demo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

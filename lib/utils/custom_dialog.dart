@@ -1,8 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:mykoku_attendance/utils/debouncer.dart';
+import 'package:face_attendance_poc/utils/debouncer.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mykoku_attendance/widgets/name_modal_widget.dart';
+import 'package:face_attendance_poc/widgets/name_modal_widget.dart';
 
 enum DialogSize { small, medium, large, custom }
 
