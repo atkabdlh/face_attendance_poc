@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart';
 import 'package:mykoku_attendance/services/app_storage.dart';
 
-enum ApiType { flask, mykoku }
+enum ApiType { flask, attn }
 
 class AppClient {
   final Client _client;
-  final String mykokuApiUrl;
+  final String attnApiUrl;
   final String flaskApiUrl;
 
-  AppClient({String? mykokuApiUrl, String? flaskApiUrl, Client? client})
+  AppClient({String? attnApiUrl, String? flaskApiUrl, Client? client})
       : _client = client ?? Client(),
-        mykokuApiUrl = mykokuApiUrl ?? '',
+        attnApiUrl = attnApiUrl ?? '',
         flaskApiUrl = flaskApiUrl ?? '';
 
   Future<Response> get(String endpoint, ApiType apiType,
@@ -19,7 +19,7 @@ class AppClient {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.get(
       Uri.parse(
-          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
+          '${apiType == ApiType.attn ? attnApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
     );
     return _handleResponse(response, apiType);
@@ -32,7 +32,7 @@ class AppClient {
         await _buildHeaders(requiresAuth, requiresCsrf: requiresCsrf);
     final response = await _client.post(
       Uri.parse(
-          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
+          '${apiType == ApiType.attn ? attnApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
       body: jsonEncode(body),
     );
@@ -53,7 +53,7 @@ class AppClient {
     final request = MultipartRequest(
         'POST',
         Uri.parse(
-            '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'))
+            '${apiType == ApiType.attn ? attnApiUrl : flaskApiUrl}/$endpoint'))
       ..headers.addAll(headers)
       ..fields.addAll(fields)
       ..files.addAll(files);
@@ -69,7 +69,7 @@ class AppClient {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.put(
       Uri.parse(
-          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
+          '${apiType == ApiType.attn ? attnApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
       body: jsonEncode(body),
     );
@@ -81,7 +81,7 @@ class AppClient {
     final headers = await _buildHeaders(requiresAuth);
     final response = await _client.delete(
       Uri.parse(
-          '${apiType == ApiType.mykoku ? mykokuApiUrl : flaskApiUrl}/$endpoint'),
+          '${apiType == ApiType.attn ? attnApiUrl : flaskApiUrl}/$endpoint'),
       headers: headers,
     );
     return _handleResponse(response, apiType);
@@ -121,7 +121,7 @@ class AppClient {
       throw Exception(responseBody['errors'] != null
           ? responseBody['errors']['message'][0]
           : responseBody['message'] ??
-              '${apiType == ApiType.mykoku ? 'Mykoku' : 'Flask'} API Error: ${response.statusCode} - ${response.body}');
+              '${apiType == ApiType.attn ? 'Attendance' : 'Flask'} API Error: ${response.statusCode} - ${response.body}');
     }
   }
 }

@@ -13,41 +13,24 @@ void main() async {
   await dotenv.load(fileName: "lib/.env");
 
   runZonedGuarded(() async {
-    // await Firebase.initializeApp();
-
     final client = AppClient(
-      mykokuApiUrl: dotenv.env['API_URL'] ?? '',
+      attnApiUrl: dotenv.env['API_URL'] ?? '',
       flaskApiUrl: dotenv.env['FLASK_API_URL'] ?? '',
     );
 
-    // MykokuReporting mykokuReporting = MykokuReporting();
-    // await mykokuReporting.initialize();
-
-    // AuthenticationRepository authRepo =
-    //     await AuthenticationRepository.initialize(client);
     DeepminRepository deepminRepo = await DeepminRepository.initialize(client);
 
     runApp(
       MultiRepositoryProvider(
         providers: [
-          // RepositoryProvider.value(value: authRepo),
           RepositoryProvider.value(value: deepminRepo),
         ],
         child: MyApp(),
-        // child: BlocProvider(
-        //   create: (context) => AuthenticationBloc(
-        //     authenticationRepository: authRepo,
-        //   )..add(GetPrefs()),
-        //   child: MyApp(
-        //     localeService: localeService,
-        //   ),
-        // ),
       ),
     );
   }, (error, stack) {
     print('runZonedGuarded Error: $error');
   });
-  // }, zoneSpecification: AppLogger().zoneSpec());
 }
 
 class MyApp extends StatelessWidget {
@@ -58,7 +41,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       initialRoute: '/landing',
-      title: 'Mykoku Attendance Demo',
+      title: 'Face Attendance Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.pink[200]!),
         useMaterial3: true,

@@ -22,10 +22,10 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Image.asset(
-          'assets/logos/full_logo.png',
-          width: 180,
+      body: const Center(
+        child: Text(
+          'Face Attendance Demo',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
         ),
       ),
     );

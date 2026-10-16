@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mykoku_attendance/models/deepmin_result_model.dart';
 import 'package:mykoku_attendance/screens/scanner/scanner_page.dart';
 import 'package:mykoku_attendance/services/repositories/deepmin_repositories.dart';
-// import 'package:mykoku_attendance/screens/scanner/scanner_initial.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,7 +23,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mykoku Attendance Demo'),
+        title: const Text('Face Attendance Demo'),
       ),
       body: SingleChildScrollView(
         child: Column(
